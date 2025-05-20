@@ -1,0 +1,612 @@
+c<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimal Binary Search Tree Visualization</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .input-section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .visualization-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .table-container, .tree-container {
+            flex: 1;
+            min-width: 300px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .step-container {
+            width: 100%;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        td.highlight {
+            background-color: #ffffcc;
+        }
+        td.current {
+            background-color: #ffcccc;
+        }
+        .tree-node {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            position: relative;
+            margin: 0 auto;
+        }
+        .tree-level {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .tree-branch {
+            position: relative;
+        }
+        .tree-container {
+            overflow: auto;
+        }
+        .node-connection {
+            position: absolute;
+            border-left: 2px solid black;
+            z-index: -1;
+        }
+        .visualization-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .svg-container {
+            width: 100%;
+            height: 400px;
+            margin-top: 20px;
+        }
+        .step-description {
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        .step-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .cost-value {
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        .root-value {
+            font-weight: bold;
+            color: #2980b9;
+        }
+        .explanation {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <h1>Optimal Binary Search Tree Visualization</h1>
+    <div class="container">
+        <div class="input-section">
+            <label for="keys">Keys (comma separated, sorted):</label>
+            <input type="text" id="keys" placeholder="10, 20, 30, 40" value="10, 20, 30, 40">
+            
+            <label for="frequencies">Frequencies (comma separated):</label>
+            <input type="text" id="frequencies" placeholder="4, 2, 6, 3" value="4, 2, 6, 3">
+            
+            <button id="calculate-btn">Calculate Optimal BST</button>
+        </div>
+        
+        <div class="step-container">
+            <h2>Algorithm Steps</h2>
+            <div class="step-description" id="step-description">
+                Enter keys and frequencies, then click "Calculate Optimal BST" to start the visualization.
+            </div>
+            <div class="step-controls">
+                <button id="prev-step-btn" disabled>Previous Step</button>
+                <button id="next-step-btn" disabled>Next Step</button>
+                <button id="auto-play-btn" disabled>Auto Play</button>
+            </div>
+        </div>
+        
+        <div class="visualization-section">
+            <div class="table-container">
+                <h2>Cost Table</h2>
+                <div id="cost-table"></div>
+                <div class="explanation" id="cost-explanation"></div>
+                
+                <h2>Root Table</h2>
+                <div id="root-table"></div>
+                <div class="explanation" id="root-explanation"></div>
+            </div>
+            
+            <div class="tree-container">
+                <h2>Optimal Binary Search Tree</h2>
+                <div class="svg-container" id="tree-visualization"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables to store algorithm state
+        let keys = [];
+        let freq = [];
+        let n = 0;
+        let cost = [];
+        let root = [];
+        let currentStep = 0;
+        let totalSteps = 0;
+        let algorithmSteps = [];
+        let autoPlayInterval = null;
+        
+        // DOM elements
+        const calculateBtn = document.getElementById('calculate-btn');
+        const prevStepBtn = document.getElementById('prev-step-btn');
+        const nextStepBtn = document.getElementById('next-step-btn');
+        const autoPlayBtn = document.getElementById('auto-play-btn');
+        const stepDescription = document.getElementById('step-description');
+        const costTableDiv = document.getElementById('cost-table');
+        const rootTableDiv = document.getElementById('root-table');
+        const treeVisualization = document.getElementById('tree-visualization');
+        const costExplanation = document.getElementById('cost-explanation');
+        const rootExplanation = document.getElementById('root-explanation');
+        
+        // Initialize event listeners
+        calculateBtn.addEventListener('click', startVisualization);
+        prevStepBtn.addEventListener('click', prevStep);
+        nextStepBtn.addEventListener('click', nextStep);
+        autoPlayBtn.addEventListener('click', toggleAutoPlay);
+        
+        function startVisualization() {
+            // Parse input values
+            const keysInput = document.getElementById('keys').value;
+            const freqInput = document.getElementById('frequencies').value;
+            
+            try {
+                keys = keysInput.split(',').map(k => parseInt(k.trim()));
+                freq = freqInput.split(',').map(f => parseInt(f.trim()));
+                
+                if (keys.length !== freq.length) {
+                    throw new Error('The number of keys and frequencies must be the same.');
+                }
+                
+                // Check if keys are sorted
+                for (let i = 1; i < keys.length; i++) {
+                    if (keys[i] <= keys[i-1]) {
+                        throw new Error('Keys must be sorted in ascending order.');
+                    }
+                }
+                
+                // Initialize algorithm
+                initializeAlgorithm();
+                
+                // Enable controls
+                prevStepBtn.disabled = true;
+                nextStepBtn.disabled = false;
+                autoPlayBtn.disabled = false;
+                
+                // Show initial step
+                showStep(0);
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        function initializeAlgorithm() {
+            n = keys.length;
+            
+            // Reset the algorithm steps
+            algorithmSteps = [];
+            currentStep = 0;
+            
+            // Initialize cost and root tables
+            cost = Array(n + 1).fill().map(() => Array(n + 1).fill(0));
+            root = Array(n + 1).fill().map(() => Array(n + 1).fill(0));
+            
+            // Add steps for initialization
+            algorithmSteps.push({
+                type: 'init',
+                description: 'Initialize empty cost and root tables. We will fill them using dynamic programming.',
+                highlightCost: [],
+                highlightRoot: []
+            });
+            
+            // Add steps for initializing diagonal elements (single node trees)
+            for (let i = 1; i <= n; i++) {
+                cost[i][i] = freq[i-1];
+                root[i][i] = i;
+                
+                algorithmSteps.push({
+                    type: 'diagonal',
+                    i: i,
+                    cost: cost[i][i],
+                    description: `Initialize cost[${i}][${i}] = ${freq[i-1]} (frequency of key ${keys[i-1]}).<br>This is the cost of a single-node tree with key ${keys[i-1]}.`,
+                    highlightCost: [[i, i]],
+                    highlightRoot: [[i, i]]
+                });
+            }
+            
+            // Build the DP tables bottom-up
+            for (let length = 2; length <= n; length++) {
+                for (let i = 1; i <= n - length + 1; i++) {
+                    let j = i + length - 1;
+                    cost[i][j] = Infinity;
+                    
+                    algorithmSteps.push({
+                        type: 'subproblem-start',
+                        i: i,
+                        j: j,
+                        description: `Starting subproblem for keys ${keys[i-1]} to ${keys[j-1]} (indices ${i} to ${j}).`,
+                        highlightCost: [[i, j]],
+                        highlightRoot: []
+                    });
+                    
+                    // Calculate sum of frequencies
+                    let sum = 0;
+                    for (let k = i - 1; k < j; k++) {
+                        sum += freq[k];
+                    }
+                    
+                    // Try each key as root
+                    for (let r = i; r <= j; r++) {
+                        let leftCost = (r > i) ? cost[i][r-1] : 0;
+                        let rightCost = (r < j) ? cost[r+1][j] : 0;
+                        let totalCost = leftCost + rightCost + sum;
+                        
+                        algorithmSteps.push({
+                            type: 'try-root',
+                            i: i,
+                            j: j,
+                            r: r,
+                            leftCost: leftCost,
+                            rightCost: rightCost,
+                            sum: sum,
+                            totalCost: totalCost,
+                            currentMinCost: cost[i][j],
+                            description: `Try key ${keys[r-1]} as root for subproblem [${i},${j}]:<br>` +
+                                       `Left subtree cost: ${leftCost}<br>` +
+                                       `Right subtree cost: ${rightCost}<br>` +
+                                       `Sum of frequencies: ${sum}<br>` +
+                                       `Total cost: ${leftCost} + ${rightCost} + ${sum} = ${totalCost}<br>` +
+                                       `Current minimum cost: ${cost[i][j] === Infinity ? '∞' : cost[i][j]}`,
+                            highlightCost: [[i, j]],
+                            highlightRoot: [[i, j]],
+                            dependencyCost: r > i ? [[i, r-1]] : [],
+                            dependencyRoot: r < j ? [[r+1, j]] : []
+                        });
+                        
+                        if (totalCost < cost[i][j]) {
+                            cost[i][j] = totalCost;
+                            root[i][j] = r;
+                            
+                            algorithmSteps.push({
+                                type: 'update-min',
+                                i: i,
+                                j: j,
+                                r: r,
+                                cost: totalCost,
+                                description: `Update minimum: cost[${i}][${j}] = ${totalCost}, root[${i}][${j}] = ${r} (key ${keys[r-1]}).`,
+                                highlightCost: [[i, j]],
+                                highlightRoot: [[i, j]]
+                            });
+                        }
+                    }
+                    
+                    algorithmSteps.push({
+                        type: 'subproblem-end',
+                        i: i,
+                        j: j,
+                        finalCost: cost[i][j],
+                        finalRoot: root[i][j],
+                        description: `Finished subproblem [${i},${j}].<br>Optimal cost: ${cost[i][j]}<br>Optimal root: ${keys[root[i][j]-1]} (index ${root[i][j]})`,
+                        highlightCost: [[i, j]],
+                        highlightRoot: [[i, j]]
+                    });
+                }
+            }
+            
+            // Final step - show the result
+            algorithmSteps.push({
+                type: 'final',
+                optimalCost: cost[1][n],
+                optimalRoot: keys[root[1][n]-1],
+                description: `Algorithm completed!<br>The optimal BST has a cost of ${cost[1][n]}.<br>The root of the optimal tree is ${keys[root[1][n]-1]}.`,
+                highlightCost: [[1, n]],
+                highlightRoot: [[1, n]],
+                showTree: true
+            });
+            
+            totalSteps = algorithmSteps.length;
+        }
+        
+        function showStep(stepIndex) {
+            const step = algorithmSteps[stepIndex];
+            currentStep = stepIndex;
+            
+            // Update step description
+            stepDescription.innerHTML = step.description;
+            
+            // Update tables
+            updateTables(step);
+            
+            // Draw tree if it's the final step
+            if (step.type === 'final' || step.showTree) {
+                drawOptimalTree();
+            } else {
+                // Clear tree visualization for intermediate steps
+                treeVisualization.innerHTML = '<div style="text-align: center; padding: 40px;">Tree will be shown at the final step</div>';
+            }
+            
+            // Update button states
+            prevStepBtn.disabled = currentStep === 0;
+            nextStepBtn.disabled = currentStep === totalSteps - 1;
+        }
+        
+        function updateTables(step) {
+            // Create cost table
+            let costTable = '<table><tr><th></th>';
+            for (let j = 1; j <= n; j++) {
+                costTable += `<th>${keys[j-1]}</th>`;
+            }
+            costTable += '</tr>';
+            
+            for (let i = 1; i <= n; i++) {
+                costTable += `<tr><th>${keys[i-1]}</th>`;
+                for (let j = 1; j <= n; j++) {
+                    const isHighlighted = step.highlightCost && step.highlightCost.some(pair => pair[0] === i && pair[1] === j);
+                    const isDependency = step.dependencyCost && step.dependencyCost.some(pair => pair[0] === i && pair[1] === j);
+                    
+                    let cellClass = isHighlighted ? 'current' : isDependency ? 'highlight' : '';
+                    
+                    if (j < i) {
+                        costTable += `<td class="${cellClass}">-</td>`;
+                    } else {
+                        costTable += `<td class="${cellClass}">${cost[i][j] === Infinity ? '∞' : cost[i][j]}</td>`;
+                    }
+                }
+                costTable += '</tr>';
+            }
+            costTable += '</table>';
+            costTableDiv.innerHTML = costTable;
+            
+            // Create root table
+            let rootTable = '<table><tr><th></th>';
+            for (let j = 1; j <= n; j++) {
+                rootTable += `<th>${keys[j-1]}</th>`;
+            }
+            rootTable += '</tr>';
+            
+            for (let i = 1; i <= n; i++) {
+                rootTable += `<tr><th>${keys[i-1]}</th>`;
+                for (let j = 1; j <= n; j++) {
+                    const isHighlighted = step.highlightRoot && step.highlightRoot.some(pair => pair[0] === i && pair[1] === j);
+                    const isDependency = step.dependencyRoot && step.dependencyRoot.some(pair => pair[0] === i && pair[1] === j);
+                    
+                    let cellClass = isHighlighted ? 'current' : isDependency ? 'highlight' : '';
+                    
+                    if (j < i) {
+                        rootTable += `<td class="${cellClass}">-</td>`;
+                    } else if (root[i][j] === 0) {
+                        rootTable += `<td class="${cellClass}">-</td>`;
+                    } else {
+                        rootTable += `<td class="${cellClass}">${keys[root[i][j]-1]}</td>`;
+                    }
+                }
+                rootTable += '</tr>';
+            }
+            rootTable += '</table>';
+            rootTableDiv.innerHTML = rootTable;
+            
+            // Update explanations based on step type
+            if (step.type === 'diagonal') {
+                costExplanation.innerHTML = `For a single node tree with key ${keys[step.i-1]}, the cost is simply its frequency: ${freq[step.i-1]}.`;
+                rootExplanation.innerHTML = `For a single node tree, the root is the node itself.`;
+            } else if (step.type === 'try-root') {
+                costExplanation.innerHTML = `Testing key ${keys[step.r-1]} as root for the subproblem [${step.i},${step.j}].`;
+                rootExplanation.innerHTML = `If the total cost (${step.totalCost}) is lower than the current minimum (${step.currentMinCost === Infinity ? '∞' : step.currentMinCost}), we'll update the root to ${keys[step.r-1]}.`;
+            } else if (step.type === 'final') {
+                costExplanation.innerHTML = `The minimum expected search cost for the optimal BST is ${step.optimalCost}.`;
+                rootExplanation.innerHTML = `The root of the optimal BST is ${step.optimalRoot}.`;
+            } else {
+                costExplanation.innerHTML = '';
+                rootExplanation.innerHTML = '';
+            }
+        }
+        
+        function drawOptimalTree() {
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute("width", "100%");
+            svg.setAttribute("height", "100%");
+            
+            treeVisualization.innerHTML = '';
+            treeVisualization.appendChild(svg);
+            
+            const nodeRadius = 20;
+            const horizontalSpacing = 60;
+            const verticalSpacing = 70;
+            
+            // Function to recursively draw tree nodes
+            function drawNode(svg, i, j, x, y, level, width) {
+                if (i > j) return;
+                
+                const r = root[i][j];
+                if (r === 0) return;
+                
+                const nodeG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                
+                // Draw the node circle
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", x);
+                circle.setAttribute("cy", y);
+                circle.setAttribute("r", nodeRadius);
+                circle.setAttribute("fill", "#3498db");
+                circle.setAttribute("stroke", "black");
+                nodeG.appendChild(circle);
+                
+                // Add text label
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", x);
+                text.setAttribute("y", y + 5);
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("fill", "white");
+                text.setAttribute("font-weight", "bold");
+                text.textContent = keys[r-1];
+                nodeG.appendChild(text);
+                
+                svg.appendChild(nodeG);
+                
+                // Calculate new width for child levels
+                const newWidth = width / 2;
+                
+                // Draw left subtree if it exists
+                if (r > i) {
+                    const leftX = x - newWidth;
+                    const leftY = y + verticalSpacing;
+                    
+                    // Draw connection line
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", x);
+                    line.setAttribute("y1", y + nodeRadius);
+                    line.setAttribute("x2", leftX);
+                    line.setAttribute("y2", leftY - nodeRadius);
+                    line.setAttribute("stroke", "black");
+                    line.setAttribute("stroke-width", "2");
+                    svg.appendChild(line);
+                    
+                    drawNode(svg, i, r-1, leftX, leftY, level+1, newWidth);
+                }
+                
+                // Draw right subtree if it exists
+                if (r < j) {
+                    const rightX = x + newWidth;
+                    const rightY = y + verticalSpacing;
+                    
+                    // Draw connection line
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", x);
+                    line.setAttribute("y1", y + nodeRadius);
+                    line.setAttribute("x2", rightX);
+                    line.setAttribute("y2", rightY - nodeRadius);
+                    line.setAttribute("stroke", "black");
+                    line.setAttribute("stroke-width", "2");
+                    svg.appendChild(line);
+                    
+                    drawNode(svg, r+1, j, rightX, rightY, level+1, newWidth);
+                }
+            }
+            
+            // Draw the root node at the center top
+            const startX = 300;
+            const startY = 50;
+            const startWidth = 150;
+            
+            drawNode(svg, 1, n, startX, startY, 0, startWidth);
+        }
+        
+        function prevStep() {
+            if (currentStep > 0) {
+                showStep(currentStep - 1);
+            }
+        }
+        
+        function nextStep() {
+            if (currentStep < totalSteps - 1) {
+                showStep(currentStep + 1);
+            }
+        }
+        
+        function toggleAutoPlay() {
+            if (autoPlayInterval) {
+                clearInterval(autoPlayInterval);
+                autoPlayInterval = null;
+                autoPlayBtn.textContent = "Auto Play";
+            } else {
+                autoPlayBtn.textContent = "Stop Auto Play";
+                autoPlayInterval = setInterval(() => {
+                    if (currentStep < totalSteps - 1) {
+                        showStep(currentStep + 1);
+                    } else {
+                        clearInterval(autoPlayInterval);
+                        autoPlayInterval = null;
+                        autoPlayBtn.textContent = "Auto Play";
+                    }
+                }, 1500);
+            }
+        }
+    </script>
+</body>
+</html>
